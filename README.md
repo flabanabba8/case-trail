@@ -11,3 +11,35 @@ Justia's [terms of service](https://www.justia.com/terms-of-service/) restrict c
 
 
 For an explicitly selected public case, `justia_fetch_public_opinion` can retrieve an OpenJurist public case page using its full URL, reporter volume, series and first page, plus a separate Justia reference. It checks the site's robots policy conservatively, makes one robots request and one case-page request, and does not automatically retry or follow redirects. OpenJurist receives the selected URL and IP address. The tool extracts the opinion section rather than the site's treatment badge, stores the text privately, and records its actual origin. It does not verify that the selected Justia and OpenJurist pages are the same case, or that OCR, footnotes, and separate opinions are complete. `justia_public_opinions`, `justia_examine_public_opinion`, and `justia_review_check_public_sources` operate on saved sources without network access. Fetch only public cases you intend to disclose to OpenJurist and follow its [terms](https://openjurist.org/terms). Pacing is per process; separate Hermes processes are not coordinated.
+
+## Example: check a known appeal
+
+A public test case is **Katz v. United States**. The Ninth Circuit opinion is
+[369 F.2d 130](https://law.justia.com/cases/federal/appellate-courts/F2/369/130/261303/);
+the Supreme Court opinion is
+[389 U.S. 347](https://supreme.justia.com/cases/federal/us/389/347/). Search by
+case name and citation to discover candidates; a search that omits a later case
+is incomplete, not proof that none exists. For an explicitly selected alternative
+public source, the lower-opinion fetch arguments are:
+
+```json
+{"url":"https://law.justia.com/cases/federal/appellate-courts/F2/369/130/261303/","public_url":"https://openjurist.org/369/f2d/130/katz-v-united-states","volume":369,"series":"f2d","page":130}
+```
+
+For the later opinion use its Justia reference, the selected OpenJurist page
+`https://openjurist.org/389/us/347/katz-v-united-states`, volume `389`, series
+`us` and page `347`. `justia_fetch_public_opinion` checks the site's robots
+policy before accessing each selected public page; access can fail or change.
+Then examine the saved texts and use exact passages from **both** when proposing
+a review. The lower opinion discusses another case's reversal, so a nearby word
+such as “reversed” is not enough to identify what happened to Katz's judgment.
+Check the complete opinions and actual appellate relationship. The official
+[U.S. Reports PDF](https://www.govinfo.gov/content/pkg/USREPORTS-389/pdf/USREPORTS-389-347.pdf)
+is a separately identified cross-check. The plugin does not certify current law,
+source completeness, case identity or legal conclusions.
+
+The lower Justia page also presents a date ambiguity: its decision-date label
+and a date in the opinion body differ. The Supreme Court's
+[certiorari order](https://supreme.justia.com/cases/federal/us/386/954/) is a
+separate procedural event. Treat the plugin's date cues as a prompt to inspect
+the original sources, not an automatic resolution of the discrepancy.
