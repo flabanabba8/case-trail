@@ -31,6 +31,7 @@ class ResearchTests(unittest.TestCase):
         self.assertEqual(len(result['results']), 1)
         self.assertEqual(ctx.calls[0][2]['session_id'], 's')
         self.assertIn('citing cases', result['query_types_available'])
+        self.assertIn('supreme citing', result['query_types_available'])
         self.assertIn('appeal parties', result['query_types_available'])
         self.assertIn('"Georgia"', result['query'])
         self.assertIn('"evidence"', result['query'])
@@ -74,6 +75,18 @@ class ResearchTests(unittest.TestCase):
         self.assertIn('Judgment reversed', result['outcome_cues'][0]['excerpt'])
         self.assertEqual(result['status'], 'unverified leads')
 
+    def test_reporter_disposition_and_other_case_reversal_remain_leads(self):
+        lower = 'Another case was reversed. The judgment of conviction is affirmed.'
+        target = plugin.core.examine('https://law.justia.com/cases/test/', lower, ['conviction'])
+        self.assertEqual(target['status'], 'unverified leads')
+        self.assertIn('reversed', target['matches'][0]['cues'])
+        self.assertIn('affirmed', target['matches'][0]['cues'])
+        self.assertTrue(any('affirmed' in x['excerpt'] for x in target['outcome_cues']))
+        higher = 'The earlier reporter citation appears here: 369 F.2d 130, reversed.'
+        appeal = plugin.core.examine('https://supreme.justia.com/cases/test/', higher, ['369 F.2d 130'])
+        self.assertTrue(appeal['outcome_cues'])
+        self.assertEqual(appeal['status'], 'unverified leads')
+
     def test_repeated_mentions_report_truncated_results(self):
         result = plugin.core.examine('https://law.justia.com/cases/test/', 'Smith ' * 30, ['Smith'])
         self.assertEqual(len(result['matches']), 20)
@@ -88,6 +101,9 @@ class ResearchTests(unittest.TestCase):
         self.assertIn('"Jackson Women\'s Health Organization"', plans['appeal parties'])
         self.assertIn('"Dobbs"', plans['appeal parties'])
         self.assertTrue(plugin.core.may_be_index('https://law.justia.com/cases/georgia/supreme-court/2019/'))
+        supreme = dict(plugin.core.terms('Katz v. United States', '369 F.2d 130', ''))['supreme citing']
+        self.assertTrue(supreme.startswith('site:supreme.justia.com/cases/ '))
+        self.assertNotIn('site:law.justia.com', supreme)
 
     def test_extract_failure_is_not_a_success(self):
         class Failed:

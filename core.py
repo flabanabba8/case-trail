@@ -17,6 +17,8 @@ CUES = re.compile(r'\b(?:revers\w*|vacat\w*|affirm\w*|overrul\w*|abrogat\w*|'
 DISPOSITION = re.compile(r'(?<![^\W_])(?:we\s+(?:therefore\s+|hereby\s+)?(?:reverse|affirm|vacate)|'
                          r'(?:judgments?|orders?|decisions?|convictions?|sentences?)\b[^.\n]{0,100}'
                          r'\b(?:reversed|affirmed|vacated)|(?:reversed|affirmed|vacated)\s+and\s+remanded)(?=$|[^\w]|_)'
+                         r'|(?<![A-Za-z0-9])\d{1,4}[ \t]+(?:[A-Za-z][A-Za-z0-9.]{0,20}[ \t]+){1,4}'
+                         r'\d{1,5},[ \t]*(?:reversed|affirmed|vacated)(?:[ \t]+in[ \t]+part)?(?=[.;]|$)'
                          r'|^[ \t]*[_*]{0,2}(?:reversed|affirmed|vacated)(?:[ \t]+in[ \t]+part)?'
                          r'(?:[ \t]+and[ \t]+(?:reversed|affirmed|vacated)(?:[ \t]+in[ \t]+part)?)?'
                          r'(?=[_*]{0,2}[.!](?:[ \t]*$|[ \t]+))', re.I | re.M)
@@ -87,9 +89,11 @@ def terms(case, citation, docket):
     if safe[1]:
         searches.append(('subsequent treatment', quoted(safe[1]) + ' overruled OR abrogated OR limited'))
         searches.append(('citing cases', quoted(safe[1])))
+        searches.append(('supreme citing', quoted(safe[1])))
     if safe[2]:
         searches.append(('docket history', quoted(safe[2]) + ' appeal'))
-    return [(kind, '(site:law.justia.com/cases/ OR site:supreme.justia.com/cases/) ' + query.strip())
+    return [(kind, ('site:supreme.justia.com/cases/ ' if kind == 'supreme citing' else
+                    '(site:law.justia.com/cases/ OR site:supreme.justia.com/cases/) ') + query.strip())
             for kind, query in searches]
 
 
