@@ -23,6 +23,11 @@ DISPOSITION = re.compile(r'(?<![^\W_])(?:we\s+(?:therefore\s+|hereby\s+)?(?:reve
                          r'|^[ \t]*[_*]{0,2}(?:reversed|affirmed|vacated)(?:[ \t]+in[ \t]+part)?'
                          r'(?:[ \t]+and[ \t]+(?:reversed|affirmed|vacated)(?:[ \t]+in[ \t]+part)?)?'
                          r'(?=[_*]{0,2}[.!](?:[ \t]*$|[ \t]+))', re.I | re.M)
+MONTHS = {name.lower(): index for index, name in enumerate(
+    ('January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'), 1)}
+DATE_TEXT = r'(?P<month>' + '|'.join(MONTHS) + r')[ \t]+(?P<day>\d{1,2}),[ \t]+(?P<year>\d{4})'
+LABELED_DATE = re.compile(r'^[ \t]*(?P<label>Date[ \t]+Decided|Decided|Certiorari[ \t]+Granted)[ \t]*:?[ \t]*' + DATE_TEXT + r'[ \t]*\.?[ \t]*\r?$', re.I | re.M)
+STANDALONE_DATE = re.compile(r'^[ \t]*' + DATE_TEXT + r'[ \t]*\.?[ \t]*\r?$', re.I | re.M)
 PRIVATE = {'.ssh', '.gnupg', '.aws', '.azure', '.codex', '.docker', '.kube', '.pki', '.config', '.hermes'}
 PRIVATE_FILES = {'.env', '.netrc', '.npmrc', '.pypirc', '.git-credentials', 'credentials.json', 'secrets.json', 'token.json'}
 PRIVATE_SUFFIXES = {'.pem', '.key', '.p12', '.pfx', '.keystore', '.jks'}
@@ -74,9 +79,11 @@ def valid_origin_url(url):
         parsed = urlsplit(url)
         host = (parsed.hostname or '').rstrip('.')
         if (parsed.scheme != 'https' or not host or '.' not in host or parsed.port not in (None, 443)
-                or parsed.username is not None or parsed.password is not None or parsed.query or parsed.fragment
+                or parsed.username is not None or parsed.password is not None or parsed.fragment
                 or not any(c.isalpha() for c in host)
                 or host.endswith(('.local', '.lan', '.internal', '.localdomain', '.localhost', '.home.arpa', '.ts.net'))):
+            return False
+        if parsed.query:
             return False
         try: ipaddress.ip_address(host)
         except ValueError: return True
@@ -114,6 +121,33 @@ def terms(case, citation, docket):
     return [(kind, ('site:supreme.justia.com/cases/ ' if kind == 'supreme citing' else
                     '(site:law.justia.com/cases/ OR site:supreme.justia.com/cases/) ') + query.strip())
             for kind, query in searches]
+
+
+def date_cues(text):
+    """Flag possible metadata conflicts, without deciding what an unlabeled date means."""
+    head = text[:4000]
+    matches = []
+    for pattern, default in ((LABELED_DATE, None), (STANDALONE_DATE, 'unlabeled')):
+        for match in itertools.islice(pattern.finditer(head), 31):
+            label = default or ('certiorari_granted' if match.group('label').lower().startswith('certiorari') else 'decision_label')
+            try:
+                date = datetime.date(int(match.group('year')), MONTHS[match.group('month').lower()], int(match.group('day'))).isoformat()
+            except ValueError:
+                date = None
+            matches.append({'event': label, 'date': date, 'start': match.start(), 'end': match.end(), 'excerpt': match.group()})
+    matches.sort(key=lambda item: item['start'])
+    truncated = len(matches) > 30
+    matches = matches[:30]
+    decisions = {x['date'] for x in matches if x['event'] == 'decision_label' and x['date']}
+    grants = {x['date'] for x in matches if x['event'] == 'certiorari_granted' and x['date']}
+    unlabeled = {x['date'] for x in matches if x['event'] == 'unlabeled' and x['date']}
+    flags = []
+    if len(decisions) > 1: flags.append('conflicting_decision_labels')
+    if decisions & grants and any(day not in decisions for day in unlabeled):
+        flags.append('decision_label_matches_grant_but_another_date_appears')
+    return {'candidates': matches, 'possible_conflicts': flags, 'truncated': truncated,
+            'scan_scope': 'first 4000 characters; English month dates on separate lines only',
+            'notice': 'These are unverified date leads. An unlabeled date may mean something else; missing matches do not establish absence.'}
 
 
 def examine(url, text, identifiers, text_origin_url=None):
@@ -157,6 +191,7 @@ def examine(url, text, identifiers, text_origin_url=None):
             'text_characters': len(text), 'matches': hits[:100], 'truncated_identifiers': truncated,
             'total_match_output_truncated': len(hits) > 100, 'outcome_cues': outcome_cues,
             'outcome_cues_truncated': outcome_count > 20, 'outcome_cue_matches': outcome_count,
+            'date_cues': date_cues(text),
             'outcome_selection': 'first ten and last ten matches when more than twenty occur', 'status': 'unverified leads',
             'text_completeness': 'not established', 'notice': NOTICE}
 

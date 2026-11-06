@@ -9,7 +9,11 @@ provides_tools:
   - justia_fetch
   - justia_examine
   - justia_examine_file
+  - justia_fetch_public_opinion
+  - justia_examine_public_opinion
+  - justia_public_opinions
   - justia_review
   - justia_review_get
   - justia_review_check_sources
+  - justia_review_check_public_sources
   - justia_reviews

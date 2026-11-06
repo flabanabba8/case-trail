@@ -25,6 +25,18 @@ class Context:
 
 
 class ResearchTests(unittest.TestCase):
+    def test_registers_the_research_skill_and_tools(self):
+        class Registry:
+            def __init__(self): self.skills, self.tools = [], []
+            def register_skill(self, name, path, description=''): self.skills.append((name, path, description))
+            def register_tool(self, **kwargs): self.tools.append(kwargs['name'])
+        ctx = Registry()
+        plugin.register(ctx)
+        self.assertEqual(ctx.skills[0][0], 'research-caselaw')
+        self.assertTrue(ctx.skills[0][1].is_file())
+        self.assertTrue(ctx.skills[0][2])
+        self.assertEqual(set(ctx.tools), set(plugin.TOOLS))
+
     def test_search_filters_domains_and_forwards_context(self):
         ctx = Context()
         result = json.loads(plugin.invoke('justia_search', {'case': 'Smith v Jones', 'citation': '100 U.S. 1', 'jurisdiction_hint': 'Georgia', 'issue_hint': 'evidence', 'query_type': 'appeal history'}, ctx, session_id='s'))
@@ -103,6 +115,20 @@ class ResearchTests(unittest.TestCase):
         appeal = plugin.core.examine('https://supreme.justia.com/cases/test/', higher, ['369 F.2d 130'])
         self.assertTrue(appeal['outcome_cues'])
         self.assertEqual(appeal['status'], 'unverified leads')
+
+    def test_date_conflict_is_flagged_without_deciding_the_unlabeled_date(self):
+        text = ('Date Decided: March 13, 1967\nNovember 17, 1966\n'
+                'Certiorari Granted March 13, 1967\nSmith, 100 U.S. 1.')
+        result = plugin.core.examine('https://law.justia.com/cases/test/', text, ['100 U.S. 1'])
+        cues = result['date_cues']
+        self.assertIn('decision_label_matches_grant_but_another_date_appears', cues['possible_conflicts'])
+        self.assertEqual([x['event'] for x in cues['candidates']], ['decision_label', 'unlabeled', 'certiorari_granted'])
+        self.assertIn('may mean something else', cues['notice'])
+        windows_text = text.replace('\n', '\r\n')
+        windows = plugin.core.examine('https://law.justia.com/cases/test/', windows_text, ['100 U.S. 1'])
+        self.assertEqual(windows['date_cues']['possible_conflicts'], cues['possible_conflicts'])
+        clean = plugin.core.examine('https://law.justia.com/cases/test/', 'Date Decided: March 13, 1967\nSmith, 100 U.S. 1.', ['100 U.S. 1'])
+        self.assertEqual(clean['date_cues']['possible_conflicts'], [])
 
     def test_repeated_mentions_report_truncated_results(self):
         result = plugin.core.examine('https://law.justia.com/cases/test/', 'Smith ' * 30, ['Smith'])
