@@ -35,6 +35,12 @@ class ResearchTests(unittest.TestCase):
         self.assertIn('"evidence"', result['query'])
         self.assertEqual(result['query_type_executed'], 'appeal history')
         self.assertIn('not checked', result['coverage'])
+        self.assertFalse(result['provider_limit_reached'])
+        class FullPage:
+            def dispatch_tool(self, *args, **kwargs):
+                return json.dumps({'success': True, 'data': {'web': [{'url': 'https://law.justia.com/cases/test/' + str(i)} for i in range(10)]}})
+        full = json.loads(plugin.invoke('justia_search', {'case': 'Smith', 'query_type': 'appeal history'}, FullPage()))
+        self.assertTrue(full['provider_limit_reached'])
         self.assertIn('incomplete', result['notice'])
 
     def test_examine_is_not_a_disposition(self):

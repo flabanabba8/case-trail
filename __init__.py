@@ -50,6 +50,7 @@ def invoke(name, args, ctx, **kwargs):
             return json.dumps({'query': query, 'query_type_executed': args['query_type'],
                                'query_types_available': list(choices), 'results': results,
                                'coverage': 'One query executed; other query types, pages and sources are not checked by this call.',
+                               'provider_result_limit': 10, 'provider_limit_reached': len(rows) >= 10,
                                'filtered_non_justia_results': len(rows)-len(results), 'notice': core.NOTICE})
         if name == 'justia_fetch':
             if not core.valid_url(args['url']):
