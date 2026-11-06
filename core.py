@@ -72,10 +72,11 @@ def valid_origin_url(url):
         return False
     try:
         parsed = urlsplit(url)
-        host = parsed.hostname
+        host = (parsed.hostname or '').rstrip('.')
         if (parsed.scheme != 'https' or not host or '.' not in host or parsed.port not in (None, 443)
                 or parsed.username is not None or parsed.password is not None or parsed.query or parsed.fragment
-                or host.endswith(('.local', '.lan', '.internal', '.localdomain', '.home.arpa', '.ts.net'))):
+                or not any(c.isalpha() for c in host)
+                or host.endswith(('.local', '.lan', '.internal', '.localdomain', '.localhost', '.home.arpa', '.ts.net'))):
             return False
         try: ipaddress.ip_address(host)
         except ValueError: return True

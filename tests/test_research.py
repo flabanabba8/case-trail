@@ -61,6 +61,12 @@ class ResearchTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Text origin'):
             plugin.core.examine('https://law.justia.com/cases/test/', 'text', ['text'],
                                 text_origin_url='https://localhost/private')
+        with self.assertRaisesRegex(ValueError, 'Text origin'):
+            plugin.core.examine('https://law.justia.com/cases/test/', 'text', ['text'],
+                                text_origin_url='https://localhost./private')
+        with self.assertRaisesRegex(ValueError, 'Text origin'):
+            plugin.core.examine('https://law.justia.com/cases/test/', 'text', ['text'],
+                                text_origin_url='https://1.2/example')
 
     def test_outcome_passage_can_be_far_from_citation(self):
         text = 'Smith, 100 U.S. 1. ' + ('Unrelated discussion. ' * 100) + 'The judgment is reversed in part.'
