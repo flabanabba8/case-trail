@@ -149,8 +149,8 @@ def review(target, later, evidence, relation, treatment, extent, opinion_role, p
     if not all(isinstance(x, str) and x.strip() and len(x) <= 3000 for x in
                (proposition, target_court, later_court, authority_analysis, identity_rationale, outcome, analysis, contrary)):
         raise ValueError('Provide the proposition, both courts and their authority relationship, identity rationale, outcome, supporting and contrary analysis')
-    if not isinstance(limitations, list) or not limitations or any(not isinstance(x, str) or not x.strip() for x in limitations):
-        raise ValueError('Specific coverage limitations are required')
+    if not isinstance(limitations, list) or not 1 <= len(limitations) <= 20 or any(not isinstance(x, str) or not x.strip() or len(x) > 1000 for x in limitations):
+        raise ValueError('Provide 1–20 specific coverage limitations of at most 1,000 characters each')
     if not isinstance(evidence, list) or not 2 <= len(evidence) <= 20:
         raise ValueError('Provide evidence from both sources')
     found = set()

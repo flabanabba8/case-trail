@@ -25,6 +25,7 @@ class Reviews:
     def save(self, record):
         review_id = uuid.uuid4().hex
         envelope = {'record': record, 'sha256': hashlib.sha256(canonical(record)).hexdigest()}
+        if len(canonical(envelope)) > 128 * 1024: raise ValueError('Review receipt exceeds size limit')
         path = self.path(review_id)
         fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         try:
@@ -35,7 +36,9 @@ class Reviews:
         return review_id
 
     def get(self, review_id):
-        envelope = json.loads(self.path(review_id).read_text(encoding='utf-8'))
+        path = self.path(review_id)
+        if not path.is_file() or path.stat().st_size > 128 * 1024: raise ValueError('Review receipt is unavailable or too large')
+        envelope = json.loads(path.read_text(encoding='utf-8'))
         record = envelope['record']
         if hashlib.sha256(canonical(record)).hexdigest() != envelope['sha256']:
             raise ValueError('Stored review fingerprint mismatch')

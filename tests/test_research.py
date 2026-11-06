@@ -116,6 +116,7 @@ class ResearchTests(unittest.TestCase):
         with self.assertRaises(ValueError): plugin.core.review(**{**args, 'opinion_role': 'dissent'})
         with self.assertRaises(ValueError): plugin.core.review(**{**args, 'opinion_role': 'unknown'})
         with self.assertRaises(ValueError): plugin.core.review(**{**args, 'evidence': [evidence[0], {**evidence[1], 'quote': 'invented'}]})
+        with self.assertRaises(ValueError): plugin.core.review(**{**args, 'limitations': ['x' * 1001]})
         with self.assertRaises(ValueError): plugin.core.review(**{**args, 'relation': 'later-treatment', 'treatment': 'overruled', 'opinion_role': 'dissent'})
         with self.assertRaisesRegex(ValueError, 'predates'):
             plugin.core.review(**args, target_date='2020-01-02', later_date='2019-01-02')
@@ -147,6 +148,8 @@ class ResearchTests(unittest.TestCase):
             path.write_text(path.read_text().replace('private analysis', 'modified analysis'))
             with self.assertRaisesRegex(ValueError, 'fingerprint mismatch'): store.get(ident)
             self.assertEqual(store.list()['unreadable_records'], 1)
+            path.write_text('x' * (128 * 1024 + 1))
+            with self.assertRaisesRegex(ValueError, 'too large'): store.get(ident)
 
 
 if __name__ == '__main__': unittest.main()
