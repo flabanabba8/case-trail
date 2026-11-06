@@ -58,6 +58,22 @@ class ResearchTests(unittest.TestCase):
         self.assertIn('reversed in part', result['outcome_cues'][0]['excerpt'])
         self.assertEqual(result['status'], 'unverified leads')
 
+    def test_late_bare_partial_disposition_is_not_hidden_by_earlier_cues(self):
+        text = 'Smith, 100 U.S. 1.\n' + ('Judgment affirmed.\n' * 30) + 'Reversed in part and affirmed in part.\n'
+        result = plugin.core.examine('https://law.justia.com/cases/test/', text, ['100 U.S. 1'])
+        self.assertTrue(result['outcome_cues_truncated'])
+        self.assertEqual(result['outcome_cue_matches'], 31)
+        self.assertEqual(len(result['outcome_cues']), 20)
+        self.assertIn('Reversed in part and affirmed in part.', result['outcome_cues'][-1]['excerpt'])
+        self.assertEqual(result['status'], 'unverified leads')
+
+    def test_emphasized_disposition_is_a_lead_not_a_conclusion(self):
+        text = 'Smith, 100 U.S. 1.\n_Judgment reversed._\n'
+        result = plugin.core.examine('https://law.justia.com/cases/test/', text, ['100 U.S. 1'])
+        self.assertEqual(result['outcome_cue_matches'], 1)
+        self.assertIn('Judgment reversed', result['outcome_cues'][0]['excerpt'])
+        self.assertEqual(result['status'], 'unverified leads')
+
     def test_repeated_mentions_report_truncated_results(self):
         result = plugin.core.examine('https://law.justia.com/cases/test/', 'Smith ' * 30, ['Smith'])
         self.assertEqual(len(result['matches']), 20)

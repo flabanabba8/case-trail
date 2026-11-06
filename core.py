@@ -2,6 +2,7 @@
 import hashlib
 import datetime
 import itertools
+from collections import deque
 import os
 from pathlib import Path
 import re
@@ -13,9 +14,12 @@ NOTICE = ('Candidates and quotations do not establish legal status. Read both co
           'Search coverage is incomplete; zero results never mean no adverse history.')
 CUES = re.compile(r'\b(?:revers\w*|vacat\w*|affirm\w*|overrul\w*|abrogat\w*|'
                   r'disapprov\w*|distinguish\w*|limit\w*|question\w*|criticiz\w*)\b', re.I)
-DISPOSITION = re.compile(r'\b(?:we\s+(?:therefore\s+|hereby\s+)?(?:reverse|affirm|vacate)|'
+DISPOSITION = re.compile(r'(?<![^\W_])(?:we\s+(?:therefore\s+|hereby\s+)?(?:reverse|affirm|vacate)|'
                          r'(?:judgments?|orders?|decisions?|convictions?|sentences?)\b[^.\n]{0,100}'
-                         r'\b(?:reversed|affirmed|vacated)|(?:reversed|affirmed|vacated)\s+and\s+remanded)\b', re.I)
+                         r'\b(?:reversed|affirmed|vacated)|(?:reversed|affirmed|vacated)\s+and\s+remanded)(?=$|[^\w]|_)'
+                         r'|^[ \t]*[_*]{0,2}(?:reversed|affirmed|vacated)(?:[ \t]+in[ \t]+part)?'
+                         r'(?:[ \t]+and[ \t]+(?:reversed|affirmed|vacated)(?:[ \t]+in[ \t]+part)?)?'
+                         r'(?=[_*]{0,2}[.!](?:[ \t]*$|[ \t]+))', re.I | re.M)
 PRIVATE = {'.ssh', '.gnupg', '.aws', '.azure', '.codex', '.docker', '.kube', '.pki', '.config', '.hermes'}
 PRIVATE_FILES = {'.env', '.netrc', '.npmrc', '.pypirc', '.git-credentials', 'credentials.json', 'secrets.json', 'token.json'}
 PRIVATE_SUFFIXES = {'.pem', '.key', '.p12', '.pfx', '.keystore', '.jks'}
@@ -113,13 +117,20 @@ def examine(url, text, identifiers):
             excerpt = text[start:end]
             hits.append({'identifier': identifier, 'start': start, 'end': end,
                          'excerpt': excerpt, 'cues': sorted({x.group().lower() for x in CUES.finditer(excerpt)})})
-    outcomes = list(itertools.islice(DISPOSITION.finditer(text), 21))
+    # Retain both ends: an opinion's own disposition often follows many earlier references.
+    first, last, outcome_count = [], deque(maxlen=10), 0
+    for match in DISPOSITION.finditer(text):
+        outcome_count += 1
+        if len(first) < 10: first.append(match)
+        else: last.append(match)
+    outcomes = first + list(last)
     outcome_cues = [{'start': max(0, m.start()-150), 'end': min(len(text), m.end()+150),
-                     'excerpt': text[max(0, m.start()-150):min(len(text), m.end()+150)]} for m in outcomes[:20]]
+                     'excerpt': text[max(0, m.start()-150):min(len(text), m.end()+150)]} for m in outcomes]
     return {'url': url, 'text_sha256': hashlib.sha256(text.encode()).hexdigest(),
             'text_characters': len(text), 'matches': hits[:100], 'truncated_identifiers': truncated,
             'total_match_output_truncated': len(hits) > 100, 'outcome_cues': outcome_cues,
-            'outcome_cues_truncated': len(outcomes) > 20, 'status': 'unverified leads',
+            'outcome_cues_truncated': outcome_count > 20, 'outcome_cue_matches': outcome_count,
+            'outcome_selection': 'first ten and last ten matches when more than twenty occur', 'status': 'unverified leads',
             'text_completeness': 'not established', 'notice': NOTICE}
 
 
