@@ -37,6 +37,9 @@ def read_opinion(path):
         after = os.fstat(f.fileno())
     if len(raw) > 2_000_000 or (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns) != (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns):
         raise ValueError('Opinion changed or exceeded the size limit')
+    current = resolved.lstat()
+    if not stat.S_ISREG(current.st_mode) or (current.st_dev, current.st_ino) != (after.st_dev, after.st_ino):
+        raise ValueError('Opinion changed or was replaced during reading')
     return raw.decode('utf-8')
 
 

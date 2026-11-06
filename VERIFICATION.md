@@ -1,6 +1,6 @@
 # Verification
 
-- Thirteen synthetic tests cover domain filtering, malformed search responses, party-name query construction, reporter-abbreviation spacing, forwarded session context, extraction URL changes, local opinion files and symlink rejection, private review receipts and corruption detection, changed-source quote validation, failure reporting, bounded match truncation, distant disposition passages, ambiguous reversal references, partial direct history, invented quotations and dissent versus overruling.
+- Fourteen synthetic tests cover domain filtering, malformed search responses, party-name query construction, reporter-abbreviation spacing, forwarded session context, extraction URL changes, local opinion files, symlink and atomic-replacement rejection, private review receipts and corruption detection, changed-source quote validation, failure reporting, bounded match truncation, distant disposition passages, ambiguous reversal references, partial direct history, invented quotations and dissent versus overruling.
 - Hermes catalog validation and Plugin Doctor passed on the development build.
 - A Hermes-runtime fixture saved a private review, reopened it by ID and listed it without including its analysis in the listing.
 - The examiner processed the text of an existing local Justia opinion capture from LegalHelper and found citation and disposition cues. This exercised real extracted source formatting; no legal conclusion or full-reading claim was made, and the source is not bundled.

@@ -4,6 +4,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('justia_case_research', ROOT / '__init__.py', submodule_search_locations=[str(ROOT)])
@@ -104,6 +105,22 @@ class ResearchTests(unittest.TestCase):
             env_file.write_text('fixture')
             result = json.loads(plugin.invoke('justia_examine_file', {**args, 'source_path': str(env_file)}, Context()))
             self.assertIn('error', result)
+
+    def test_replaced_opinion_during_read_is_rejected(self):
+        with tempfile.TemporaryDirectory(dir='/tmp') as tmp:
+            source, replacement = Path(tmp)/'opinion.txt', Path(tmp)/'replacement.txt'
+            source.write_text('Original opinion'); replacement.write_text('Replacement opinion')
+            fstat = plugin.core.os.fstat
+            calls = 0
+            def replace_during_read(fd):
+                nonlocal calls
+                calls += 1
+                result = fstat(fd)
+                if calls == 2: plugin.core.os.replace(replacement, source)
+                return result
+            with patch.object(plugin.core.os, 'fstat', side_effect=replace_during_read):
+                with self.assertRaisesRegex(ValueError, 'replaced during reading'):
+                    plugin.core.read_opinion(str(source))
 
     def test_review_requires_exact_both_sides_and_direct_history(self):
         target = {'url': 'https://law.justia.com/cases/test/a', 'text': 'Original court decision.'}
