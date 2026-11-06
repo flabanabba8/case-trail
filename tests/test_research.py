@@ -1,4 +1,5 @@
 import importlib.util
+import hashlib
 import json
 from pathlib import Path
 import sys
@@ -176,6 +177,19 @@ class ResearchTests(unittest.TestCase):
             self.assertEqual(store.list()['unreadable_records'], 1)
             path.write_text('x' * (128 * 1024 + 1))
             with self.assertRaisesRegex(ValueError, 'too large'): store.get(ident)
+
+    def test_review_source_check_flags_changes_and_unavailable_files(self):
+        with tempfile.TemporaryDirectory(dir='/tmp') as tmp:
+            base = Path(tmp); target, later = base/'target.txt', base/'later.txt'
+            target.write_text('Original text'); later.write_text('Later text')
+            digest = lambda value: hashlib.sha256(value.encode()).hexdigest()
+            store = plugin.Reviews(base/'receipts')
+            ident = store.save({'sources': [{'sha256': digest('Original text')}, {'sha256': digest('Later text')}]})
+            self.assertEqual(store.check_sources(ident, str(target), str(later))['source_check'], 'source_texts_match')
+            target.write_text('Changed text')
+            self.assertEqual(store.check_sources(ident, str(target), str(later))['source_check'], 'changed')
+            target.write_text('Original text'); later.unlink()
+            self.assertEqual(store.check_sources(ident, str(target), str(later))['source_check'], 'incomplete')
 
 
 if __name__ == '__main__': unittest.main()

@@ -57,3 +57,24 @@ class Reviews:
             except (ValueError, KeyError, TypeError, OSError):
                 unreadable += 1
         return {'reviews': records, 'unreadable_records': unreadable}
+
+    def check_sources(self, review_id, target_path, later_path):
+        from .core import read_opinion
+        record = self.get(review_id)['review']
+        sources = record.get('sources')
+        if not isinstance(sources, list) or len(sources) != 2:
+            raise ValueError('Review receipt has invalid source fingerprints')
+        checks = []
+        for role, path, source in zip(('target', 'later'), (target_path, later_path), sources):
+            expected = source.get('sha256') if isinstance(source, dict) else None
+            if not isinstance(expected, str) or len(expected) != 64 or any(c not in '0123456789abcdef' for c in expected):
+                raise ValueError('Review receipt has invalid source fingerprints')
+            try:
+                current = hashlib.sha256(read_opinion(path).encode('utf-8')).hexdigest()
+                checks.append({'role': role, 'status': 'matches' if current == expected else 'changed'})
+            except (OSError, ValueError, UnicodeError):
+                checks.append({'role': role, 'status': 'unavailable_or_unsupported'})
+        statuses = {x['status'] for x in checks}
+        state = 'changed' if 'changed' in statuses else 'incomplete' if 'unavailable_or_unsupported' in statuses else 'source_texts_match'
+        return {'review_id': review_id, 'source_check': state, 'sources': checks,
+                'notice': 'Matching source text does not verify provenance, legal analysis or later developments. A changed or unavailable source needs review.'}

@@ -11,4 +11,5 @@ provides_tools:
   - justia_examine_file
   - justia_review
   - justia_review_get
+  - justia_review_check_sources
   - justia_reviews
