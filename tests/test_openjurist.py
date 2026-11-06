@@ -5,6 +5,7 @@ from pathlib import Path
 import socket
 import sys
 import tempfile
+import types
 import unittest
 from unittest.mock import patch
 
@@ -84,5 +85,23 @@ class OpenJuristTests(unittest.TestCase):
   path=self.store.path(result['source_id']);path.write_text(path.read_text().replace('Fictional case','Changed case'))
   with self.assertRaisesRegex(ValueError,'record fingerprint'):self.store.load(result['source_id'])
 
+ def test_read_pages_preserve_unicode_offsets_and_reject_invalid_bounds(self):
+  body='Fictional opinion with café and sufficient text to exercise reading in separate pages.'
+  def get(path,limit):return b'User-agent: *\nAllow: /\n' if path=='/robots.txt' else payload(100,'f2d',5,'<p>'+body+'</p>')
+  source=self.store.fetch(LOW,PAGE,100,'f2d',5,_request=get,_sleep=lambda _:None)['source_id']
+  expected=self.store.load(source)['text']; pieces=[]; start=0
+  while start is not None:
+   page=self.store.read(source,start,13);pieces.append(page['text'])
+   self.assertEqual(page['text'],expected[page['start']:page['end']]);start=page['next_start']
+  self.assertEqual(''.join(pieces),expected)
+  storage=types.ModuleType('plugins.plugin_storage');storage.plugin_data_dir=lambda _:self.root
+  plugins=types.ModuleType('plugins');plugins.__path__=[]
+  with patch.dict(sys.modules,{'plugins':plugins,'plugins.plugin_storage':storage}):
+   result=json.loads(plugin.invoke('justia_read_public_opinion',{'source_id':source,'start':0,'length':13},None))
+  self.assertEqual(result['text'],expected[:13]);self.assertEqual(result['next_start'],13)
+  for start,length in ((-1,1),(len(expected),1),(True,1),(0,0),(0,10001),(0,True)):
+   with self.assertRaises(ValueError):self.store.read(source,start,length)
 
 if __name__=='__main__':unittest.main()
+
+

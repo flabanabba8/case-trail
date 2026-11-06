@@ -28,6 +28,9 @@ later court overruling, limiting or distinguishing a rule in another case.
    saved sources; verify case identity, OCR and coverage independently. No site
    badge or retrieved text proves legal status. A snippet or partial extraction
    is not a complete opinion.
+   Use `justia_read_public_opinion` from offset zero and follow `next_start` to
+   read saved text in bounded slices; offsets count Unicode characters in the
+   saved text. Confirm completeness against the source itself.
 4. Use `justia_examine` or `justia_examine_file` to locate citations, possible
    disposition language and date cues. All are leads, not findings. A reversal
    may refer to another case, a quotation, a dissent or only part of a judgment.

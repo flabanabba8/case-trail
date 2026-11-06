@@ -274,6 +274,20 @@ class PublicOpinions:
         return {'source_id': source_id, **{k: v for k, v in record.items() if k != 'text'},
                 'notice': 'OpenJurist receives the selected page URL and your IP address. Text and metadata are untrusted; identity, OCR quality, separate opinions and completeness require review. No legal status is certified.'}
 
+    def read(self, source_id, start, length=10000):
+        record = self.load(source_id)
+        text = record['text']
+        if type(start) is not int or not 0 <= start < len(text):
+            raise ValueError('Start must be a character offset within the saved opinion')
+        if type(length) is not int or not 1 <= length <= 10000:
+            raise ValueError('Length must be between 1 and 10000 characters')
+        end = min(start + length, len(text))
+        return {'source_id': source_id, 'start': start, 'end': end, 'text': text[start:end],
+                'next_start': end if end < len(text) else None, 'text_characters': len(text),
+                'text_sha256': record['sha256'], 'reference_url': record['reference_url'],
+                'text_origin_url': record['text_origin_url'],
+                'notice': 'Untrusted extracted text; identity, completeness and legal status are not verified. Offsets count Unicode characters in this saved text.'}
+
     def list(self):
         paths = sorted(self.root.glob('*.json'))
         if len(paths) > 1000:

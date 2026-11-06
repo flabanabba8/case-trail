@@ -1,5 +1,7 @@
 # Verification
 
+- Saved public opinion text can be read in bounded offset-preserving pages; synthetic tests cover Unicode, reconstruction and invalid bounds. Reading the extract does not establish that the source or extraction is complete.
+
 - Twenty-seven synthetic tests cover domain filtering, separate text provenance, malformed search responses, party-name query construction, reporter-abbreviation spacing, forwarded session context, extraction URL changes, local opinion files, symlink and atomic-replacement rejection, private review receipts and corruption detection, saved-source change checks, changed-source quote validation, failure reporting, bounded match truncation, late and emphasized disposition passages, reporter-citation dispositions, ambiguous reversal references, partial direct history, invented quotations and dissent versus overruling.
 - Hermes catalog validation and Plugin Doctor passed on the development build.
 - A Hermes-runtime fixture saved a private review, reopened it by ID and listed it without including its analysis in the listing.

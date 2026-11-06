@@ -11,6 +11,7 @@ provides_tools:
   - justia_examine_file
   - justia_fetch_public_opinion
   - justia_examine_public_opinion
+  - justia_read_public_opinion
   - justia_public_opinions
   - justia_review
   - justia_review_get

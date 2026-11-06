@@ -12,6 +12,12 @@ Justia's [terms of service](https://www.justia.com/terms-of-service/) restrict c
 
 For an explicitly selected public case, `justia_fetch_public_opinion` can retrieve an OpenJurist public case page using its full URL, reporter volume, series and first page, plus a separate Justia reference. It checks the site's robots policy conservatively, makes one robots request and one case-page request, and does not automatically retry or follow redirects. OpenJurist receives the selected URL and IP address. The tool extracts the opinion section rather than the site's treatment badge, stores the text privately, and records its actual origin. It does not verify that the selected Justia and OpenJurist pages are the same case, or that OCR, footnotes, and separate opinions are complete. `justia_public_opinions`, `justia_examine_public_opinion`, and `justia_review_check_public_sources` operate on saved sources without network access. Fetch only public cases you intend to disclose to OpenJurist and follow its [terms](https://openjurist.org/terms). Pacing is per process; separate Hermes processes are not coordinated.
 
+`justia_read_public_opinion` reads saved text in slices of at most 10,000
+Unicode characters. Start at offset zero and follow `next_start` until null.
+The returned start and end are offsets in the saved text, suitable for exact
+review evidence. Reading every slice does not prove the extraction contains
+every opinion or footnote; compare the original source.
+
 ## Example: check a known appeal
 
 A public test case is **Katz v. United States**. The Ninth Circuit opinion is
