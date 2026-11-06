@@ -50,6 +50,17 @@ class ResearchTests(unittest.TestCase):
         self.assertEqual(result['status'], 'unverified leads')
         self.assertIn('reversed', result['matches'][0]['cues'])
         self.assertFalse(plugin.core.valid_url('https://law.justia.com@evil.invalid/cases/test'))
+        self.assertFalse(plugin.core.valid_url('https://@law.justia.com/cases/test'))
+
+    def test_justia_reference_and_text_origin_are_separate(self):
+        result = plugin.core.examine('https://supreme.justia.com/cases/federal/us/389/347/',
+                                     'An opinion mentions 369 F.2d 130.', ['369 F.2d 130'],
+                                     text_origin_url='https://www.govinfo.gov/content/example.pdf')
+        self.assertEqual(result['text_origin_url'], 'https://www.govinfo.gov/content/example.pdf')
+        self.assertIn('not authenticated', result['text_origin_verification'])
+        with self.assertRaisesRegex(ValueError, 'Text origin'):
+            plugin.core.examine('https://law.justia.com/cases/test/', 'text', ['text'],
+                                text_origin_url='https://localhost/private')
 
     def test_outcome_passage_can_be_far_from_citation(self):
         text = 'Smith, 100 U.S. 1. ' + ('Unrelated discussion. ' * 100) + 'The judgment is reversed in part.'
@@ -189,9 +200,10 @@ class ResearchTests(unittest.TestCase):
             later = Path(tmp) / 'later.txt'
             target.write_text('Original court decision.')
             later.write_text('The judgment is reversed in part.')
-            args = dict(target={'url': 'https://law.justia.com/cases/test/a', 'source_path': str(target)}, later={'url': 'https://law.justia.com/cases/test/b', 'source_path': str(later)}, evidence=[{'source': 'target', 'start': 0, 'end': 8, 'quote': 'Original'}, {'source': 'later', 'start': 0, 'end': 12, 'quote': 'The judgment'}], relation='direct-history', treatment='reversed', extent='part', opinion_role='majority', proposition='A legal rule', target_court='Trial court', later_court='Appeals court', authority_analysis='Appeals court reviews trial judgment', identity_rationale='Same case on appeal', outcome='Partly reversed', analysis='Matching appeal.', contrary='Other grounds remain.', limitations=['Search incomplete'])
+            args = dict(target={'url': 'https://law.justia.com/cases/test/a', 'source_path': str(target), 'text_origin_url': 'https://example.org/target'}, later={'url': 'https://law.justia.com/cases/test/b', 'source_path': str(later)}, evidence=[{'source': 'target', 'start': 0, 'end': 8, 'quote': 'Original'}, {'source': 'later', 'start': 0, 'end': 12, 'quote': 'The judgment'}], relation='direct-history', treatment='reversed', extent='part', opinion_role='majority', proposition='A legal rule', target_court='Trial court', later_court='Appeals court', authority_analysis='Appeals court reviews trial judgment', identity_rationale='Same case on appeal', outcome='Partly reversed', analysis='Matching appeal.', contrary='Other grounds remain.', limitations=['Search incomplete'])
             result = json.loads(plugin.invoke('justia_review', args, Context()))
             self.assertIn('proposed', result['status'])
+            self.assertEqual(result['sources'][0]['text_origin_url'], 'https://example.org/target')
             later.write_text('Changed opinion text.')
             self.assertIn('error', json.loads(plugin.invoke('justia_review', args, Context())))
 

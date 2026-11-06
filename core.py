@@ -1,6 +1,7 @@
 """Evidence triage for case research. A match is never a legal conclusion."""
 import hashlib
 import datetime
+import ipaddress
 import itertools
 from collections import deque
 import os
@@ -60,8 +61,25 @@ def valid_url(url):
     try:
         u = urlsplit(url)
         return (u.scheme == 'https' and u.hostname in {'law.justia.com', 'supreme.justia.com'}
-                and u.port in (None, 443) and not u.username and not u.password
+                and u.port in (None, 443) and u.username is None and u.password is None
                 and not u.query and not u.fragment and u.path.startswith('/cases/'))
+    except ValueError:
+        return False
+
+
+def valid_origin_url(url):
+    if not isinstance(url, str) or len(url) > 2000:
+        return False
+    try:
+        parsed = urlsplit(url)
+        host = parsed.hostname
+        if (parsed.scheme != 'https' or not host or '.' not in host or parsed.port not in (None, 443)
+                or parsed.username is not None or parsed.password is not None or parsed.query or parsed.fragment
+                or host.endswith(('.local', '.lan', '.internal', '.localdomain', '.home.arpa', '.ts.net'))):
+            return False
+        try: ipaddress.ip_address(host)
+        except ValueError: return True
+        return False
     except ValueError:
         return False
 
@@ -97,11 +115,13 @@ def terms(case, citation, docket):
             for kind, query in searches]
 
 
-def examine(url, text, identifiers):
+def examine(url, text, identifiers, text_origin_url=None):
     if not valid_url(url):
         raise ValueError('Use an HTTPS Justia case-opinion URL without query or fragment')
     if not isinstance(text, str) or not text.strip() or len(text) > 2_000_000:
         raise ValueError('Supply up to 2 million characters of extracted opinion text')
+    if text_origin_url is not None and not valid_origin_url(text_origin_url):
+        raise ValueError('Text origin must be a public HTTPS URL without credentials, query or fragment')
     if not isinstance(identifiers, list) or not 1 <= len(identifiers) <= 8:
         raise ValueError('Supply 1 to 8 case identifiers')
     if any(not isinstance(x, str) or not x.strip() or len(x) > 200 for x in identifiers):
@@ -130,7 +150,9 @@ def examine(url, text, identifiers):
     outcomes = first + list(last)
     outcome_cues = [{'start': max(0, m.start()-150), 'end': min(len(text), m.end()+150),
                      'excerpt': text[max(0, m.start()-150):min(len(text), m.end()+150)]} for m in outcomes]
-    return {'url': url, 'text_sha256': hashlib.sha256(text.encode()).hexdigest(),
+    return {'url': url, 'text_origin_url': text_origin_url,
+            'text_origin_verification': 'user-supplied; not authenticated' if text_origin_url else 'not specified',
+            'text_sha256': hashlib.sha256(text.encode()).hexdigest(),
             'text_characters': len(text), 'matches': hits[:100], 'truncated_identifiers': truncated,
             'total_match_output_truncated': len(hits) > 100, 'outcome_cues': outcome_cues,
             'outcome_cues_truncated': outcome_count > 20, 'outcome_cue_matches': outcome_count,
@@ -144,6 +166,8 @@ def review(target, later, evidence, relation, treatment, extent, opinion_role, p
     for source in (target, later):
         if not isinstance(source, dict) or not valid_url(source.get('url')) or not isinstance(source.get('text'), str) or not source['text'].strip() or len(source['text']) > 2_000_000:
             raise ValueError('Both source objects need a Justia case URL and extracted opinion text')
+        if source.get('text_origin_url') is not None and not valid_origin_url(source['text_origin_url']):
+            raise ValueError('Text origin must be a public HTTPS URL without credentials, query or fragment')
     if relation not in {'direct-history', 'later-treatment', 'uncertain'}:
         raise ValueError('Invalid relationship')
     if treatment not in {'reversed', 'affirmed', 'vacated', 'overruled', 'limited', 'distinguished', 'followed', 'uncertain'}:
@@ -195,5 +219,6 @@ def review(target, later, evidence, relation, treatment, extent, opinion_role, p
             'reviewer_kind': reviewer_kind, 'read_scope': read_scope,
             'chronology': 'provided dates checked for order, not authenticated' if all(dates) else 'unverified: decision date missing',
             'limitations': limitations, 'evidence': evidence,
-            'sources': [{'url': s['url'], 'sha256': hashlib.sha256(s['text'].encode()).hexdigest()} for s in (target, later)],
+            'sources': [{'url': s['url'], 'text_origin_url': s.get('text_origin_url'),
+                         'sha256': hashlib.sha256(s['text'].encode()).hexdigest()} for s in (target, later)],
             'notice': NOTICE + ' Matching quotes do not verify the legal analysis, URL provenance, decision dates or completeness of either text.'}
