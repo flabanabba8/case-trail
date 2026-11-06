@@ -1,0 +1,9 @@
+# Verification
+
+- Thirteen synthetic tests cover domain filtering, malformed search responses, party-name query construction, reporter-abbreviation spacing, forwarded session context, extraction URL changes, local opinion files and symlink rejection, private review receipts and corruption detection, changed-source quote validation, failure reporting, bounded match truncation, distant disposition passages, ambiguous reversal references, partial direct history, invented quotations and dissent versus overruling.
+- Hermes catalog validation and Plugin Doctor passed on the development build.
+- A Hermes-runtime fixture saved a private review, reopened it by ID and listed it without including its analysis in the listing.
+- The examiner processed the text of an existing local Justia opinion capture from LegalHelper and found citation and disposition cues. This exercised real extracted source formatting; no legal conclusion or full-reading claim was made, and the source is not bundled.
+- A live Hermes web search for the parties in a historical appeal returned Justia links for both the Fifth Circuit and Supreme Court opinions, including after the party-name query was corrected to preserve apostrophes. Search results alone are not verified treatment.
+- Live opinion extraction remains unverified: the configured Hermes backend reports that it is search-only. Direct requests to one Supreme Court opinion and one separate law.justia.com appellate opinion each returned HTTP 403. The plugin exposes errors and does not bypass access restrictions. A permitted, supported extraction route is needed for an end-to-end test.
+- The plugin has no completeness benchmark, automatic independent legal review, paginated pincite validator, desktop UI, demonstration, release audit or proof of compatibility with Justia's terms for the contest. It is not release-ready.

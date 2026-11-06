@@ -1,0 +1,14 @@
+name: justia-case-research
+version: "0.1.0"
+description: "Research case history and later treatment using Justia source evidence."
+author: "Justia Case Research contributors"
+license: GPL-3.0-or-later
+requires_hermes: ">=0.22.0"
+provides_tools:
+  - justia_search
+  - justia_fetch
+  - justia_examine
+  - justia_examine_file
+  - justia_review
+  - justia_review_get
+  - justia_reviews
