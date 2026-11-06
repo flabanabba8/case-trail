@@ -177,6 +177,8 @@ class ResearchTests(unittest.TestCase):
             self.assertEqual(store.list()['unreadable_records'], 1)
             path.write_text('x' * (128 * 1024 + 1))
             with self.assertRaisesRegex(ValueError, 'too large'): store.get(ident)
+            path.write_text('[]')
+            with self.assertRaisesRegex(ValueError, 'Invalid review receipt'): store.get(ident)
 
     def test_review_source_check_flags_changes_and_unavailable_files(self):
         with tempfile.TemporaryDirectory(dir='/tmp') as tmp:

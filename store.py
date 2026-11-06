@@ -39,6 +39,8 @@ class Reviews:
         path = self.path(review_id)
         if not path.is_file() or path.stat().st_size > 128 * 1024: raise ValueError('Review receipt is unavailable or too large')
         envelope = json.loads(path.read_text(encoding='utf-8'))
+        if not isinstance(envelope, dict) or not isinstance(envelope.get('record'), dict) or not isinstance(envelope.get('sha256'), str):
+            raise ValueError('Invalid review receipt')
         record = envelope['record']
         if hashlib.sha256(canonical(record)).hexdigest() != envelope['sha256']:
             raise ValueError('Stored review fingerprint mismatch')
