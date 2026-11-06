@@ -105,6 +105,9 @@ class ResearchTests(unittest.TestCase):
             env_file.write_text('fixture')
             result = json.loads(plugin.invoke('justia_examine_file', {**args, 'source_path': str(env_file)}, Context()))
             self.assertIn('error', result)
+            key_file = Path(tmp) / 'signing.p12'
+            key_file.write_text('fixture')
+            self.assertIn('error', json.loads(plugin.invoke('justia_examine_file', {**args, 'source_path': str(key_file)}, Context())))
 
     def test_replaced_opinion_during_read_is_rejected(self):
         with tempfile.TemporaryDirectory(dir='/tmp') as tmp:

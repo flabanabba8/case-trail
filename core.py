@@ -17,16 +17,21 @@ DISPOSITION = re.compile(r'\b(?:we\s+(?:therefore\s+|hereby\s+)?(?:reverse|affir
                          r'(?:judgments?|orders?|decisions?|convictions?|sentences?)\b[^.\n]{0,100}'
                          r'\b(?:reversed|affirmed|vacated)|(?:reversed|affirmed|vacated)\s+and\s+remanded)\b', re.I)
 PRIVATE = {'.ssh', '.gnupg', '.aws', '.azure', '.codex', '.docker', '.kube', '.pki', '.config', '.hermes'}
-PRIVATE_FILES = {'.env', '.netrc', '.npmrc', '.pypirc', '.git-credentials'}
+PRIVATE_FILES = {'.env', '.netrc', '.npmrc', '.pypirc', '.git-credentials', 'credentials.json', 'secrets.json', 'token.json'}
+PRIVATE_SUFFIXES = {'.pem', '.key', '.p12', '.pfx', '.keystore', '.jks'}
+
+
+def private_file(path):
+    return path.name.lower() in PRIVATE_FILES or path.name.lower().startswith('.env.') or path.suffix.lower() in PRIVATE_SUFFIXES
 
 
 def read_opinion(path):
     if not isinstance(path, str): raise ValueError('Opinion path must be a string')
     original = Path(path).expanduser()
-    if not original.is_absolute() or original.is_symlink() or original.name in PRIVATE_FILES or original.name.startswith('.env.') or any(x in PRIVATE for x in original.parts):
+    if not original.is_absolute() or original.is_symlink() or private_file(original) or any(x in PRIVATE for x in original.parts):
         raise ValueError('Use an absolute opinion file outside private configuration')
     resolved = original.resolve(strict=True)
-    if resolved.name in PRIVATE_FILES or resolved.name.startswith('.env.') or any(x in PRIVATE for x in resolved.parts): raise ValueError('Private configuration is unsupported')
+    if private_file(resolved) or any(x in PRIVATE for x in resolved.parts): raise ValueError('Private configuration is unsupported')
     flags = os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_NONBLOCK', 0)
     fd = os.open(resolved, flags)
     with os.fdopen(fd, 'rb') as f:
