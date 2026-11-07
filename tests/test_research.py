@@ -25,6 +25,18 @@ class Context:
 
 
 class ResearchTests(unittest.TestCase):
+    def test_every_tool_name_reaches_its_implementation_through_invoke(self):
+        # Regression: a rename once left the dispatch prefix stale, so a registered tool failed with AttributeError.
+        text = 'Smith v. Jones, 100 F.2d 1 (9th Cir. 1950). We hold the contract was void. The judgment of the district court is reversed.'
+        result = json.loads(plugin.invoke('caselaw_examine', {'url': 'https://law.justia.com/cases/federal/appellate-courts/F2/100/1/', 'text': text,
+                                                              'identifiers': ['Smith v. Jones']}, Context()))
+        self.assertNotIn('error', result, result)
+        self.assertTrue(result)
+        for name in plugin.TOOLS:
+            result = json.loads(plugin.invoke(name, {}, Context()))
+            self.assertNotIn('AttributeError', json.dumps(result), name)   # bad arguments may error, but never because the name was not wired
+
+
     def test_mixed_case_private_directory_is_rejected(self):
         with tempfile.TemporaryDirectory(dir='/tmp') as tmp:
             folder=Path(tmp)/'.CoDeX';folder.mkdir();source=folder/'fixture.txt';source.write_text('fictional')

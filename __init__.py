@@ -128,7 +128,7 @@ def invoke(name, args, ctx, **kwargs):
                 from plugins.plugin_storage import plugin_data_dir
                 result = {**result, 'review_id': Reviews(plugin_data_dir('case-trail')).save(result)}
             return json.dumps(result)
-        return json.dumps(getattr(core, name.removeprefix('justia_'))(**args))
+        return json.dumps(getattr(core, name.removeprefix('caselaw_'))(**args))
     except (ValueError, TypeError, KeyError, OSError, UnicodeError, RuntimeError) as exc:
         return json.dumps({'error': str(exc)})
 
