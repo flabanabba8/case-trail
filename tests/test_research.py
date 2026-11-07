@@ -8,7 +8,7 @@ import unittest
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
-spec = importlib.util.spec_from_file_location('justia_case_research', ROOT / '__init__.py', submodule_search_locations=[str(ROOT)])
+spec = importlib.util.spec_from_file_location('case_trail', ROOT / '__init__.py', submodule_search_locations=[str(ROOT)])
 plugin = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = plugin
 spec.loader.exec_module(plugin)
@@ -44,7 +44,7 @@ class ResearchTests(unittest.TestCase):
 
     def test_search_filters_domains_and_forwards_context(self):
         ctx = Context()
-        result = json.loads(plugin.invoke('justia_search', {'case': 'Smith v Jones', 'citation': '100 U.S. 1', 'jurisdiction_hint': 'Georgia', 'issue_hint': 'evidence', 'query_type': 'appeal history'}, ctx, session_id='s'))
+        result = json.loads(plugin.invoke('caselaw_search', {'case': 'Smith v Jones', 'citation': '100 U.S. 1', 'jurisdiction_hint': 'Georgia', 'issue_hint': 'evidence', 'query_type': 'appeal history'}, ctx, session_id='s'))
         self.assertEqual(len(result['results']), 1)
         self.assertEqual(ctx.calls[0][2]['session_id'], 's')
         self.assertIn('citing cases', result['query_types_available'])
@@ -58,7 +58,7 @@ class ResearchTests(unittest.TestCase):
         class FullPage:
             def dispatch_tool(self, *args, **kwargs):
                 return json.dumps({'success': True, 'data': {'web': [{'url': 'https://law.justia.com/cases/test/' + str(i)} for i in range(10)]}})
-        full = json.loads(plugin.invoke('justia_search', {'case': 'Smith', 'query_type': 'appeal history'}, FullPage()))
+        full = json.loads(plugin.invoke('caselaw_search', {'case': 'Smith', 'query_type': 'appeal history'}, FullPage()))
         self.assertTrue(full['provider_limit_reached'])
         self.assertIn('incomplete', result['notice'])
 
@@ -156,17 +156,17 @@ class ResearchTests(unittest.TestCase):
     def test_extract_failure_is_not_a_success(self):
         class Failed:
             def dispatch_tool(self, *args, **kwargs): return json.dumps({'success': False, 'error': 'unavailable'})
-        result = json.loads(plugin.invoke('justia_fetch', {'url': 'https://law.justia.com/cases/test/'}, Failed()))
+        result = json.loads(plugin.invoke('caselaw_fetch', {'url': 'https://law.justia.com/cases/test/'}, Failed()))
         self.assertEqual(result['error'], 'Extraction provider failed')
 
     def test_malformed_search_is_not_reported_as_zero_hits(self):
         class Malformed:
             def dispatch_tool(self, *args, **kwargs): return json.dumps({'success': True, 'data': {}})
-        result = json.loads(plugin.invoke('justia_search', {'case': 'Smith', 'query_type': 'appeal history'}, Malformed()))
+        result = json.loads(plugin.invoke('caselaw_search', {'case': 'Smith', 'query_type': 'appeal history'}, Malformed()))
         self.assertIn('error', result)
         class Raised:
             def dispatch_tool(self, *args, **kwargs): raise RuntimeError('private provider details')
-        result = json.loads(plugin.invoke('justia_search', {'case': 'Smith', 'query_type': 'appeal history'}, Raised()))
+        result = json.loads(plugin.invoke('caselaw_search', {'case': 'Smith', 'query_type': 'appeal history'}, Raised()))
         self.assertIn('incomplete', result['error'])
         self.assertNotIn('private provider details', str(result))
 
@@ -174,7 +174,7 @@ class ResearchTests(unittest.TestCase):
         class Extracted:
             def dispatch_tool(self, *args, **kwargs):
                 return json.dumps({'results': [{'url': 'https://law.justia.com/cases/other', 'content': 'opinion'}]})
-        result = json.loads(plugin.invoke('justia_fetch', {'url': 'https://law.justia.com/cases/requested'}, Extracted()))
+        result = json.loads(plugin.invoke('caselaw_fetch', {'url': 'https://law.justia.com/cases/requested'}, Extracted()))
         self.assertTrue(result['returned_url_differs'])
 
     def test_examine_local_file_and_reject_symlink(self):
@@ -182,19 +182,19 @@ class ResearchTests(unittest.TestCase):
             path = Path(tmp) / 'opinion.txt'
             path.write_text('The opinion cites 100 U.S. 1 and discusses a reversal.')
             args = {'url': 'https://law.justia.com/cases/test/', 'source_path': str(path), 'identifiers': ['100 U.S. 1']}
-            result = json.loads(plugin.invoke('justia_examine_file', args, Context()))
+            result = json.loads(plugin.invoke('caselaw_examine_file', args, Context()))
             self.assertEqual(len(result['matches']), 1)
             symlink = Path(tmp) / 'alias.txt'
             symlink.symlink_to(path)
-            result = json.loads(plugin.invoke('justia_examine_file', {**args, 'source_path': str(symlink)}, Context()))
+            result = json.loads(plugin.invoke('caselaw_examine_file', {**args, 'source_path': str(symlink)}, Context()))
             self.assertIn('error', result)
             env_file = Path(tmp) / '.env'
             env_file.write_text('fixture')
-            result = json.loads(plugin.invoke('justia_examine_file', {**args, 'source_path': str(env_file)}, Context()))
+            result = json.loads(plugin.invoke('caselaw_examine_file', {**args, 'source_path': str(env_file)}, Context()))
             self.assertIn('error', result)
             key_file = Path(tmp) / 'signing.p12'
             key_file.write_text('fixture')
-            self.assertIn('error', json.loads(plugin.invoke('justia_examine_file', {**args, 'source_path': str(key_file)}, Context())))
+            self.assertIn('error', json.loads(plugin.invoke('caselaw_examine_file', {**args, 'source_path': str(key_file)}, Context())))
 
     def test_replaced_opinion_during_read_is_rejected(self):
         with tempfile.TemporaryDirectory(dir='/tmp') as tmp:
@@ -238,11 +238,11 @@ class ResearchTests(unittest.TestCase):
             target.write_text('Original court decision.')
             later.write_text('The judgment is reversed in part.')
             args = dict(target={'url': 'https://law.justia.com/cases/test/a', 'source_path': str(target), 'text_origin_url': 'https://example.org/target'}, later={'url': 'https://law.justia.com/cases/test/b', 'source_path': str(later)}, evidence=[{'source': 'target', 'start': 0, 'end': 8, 'quote': 'Original'}, {'source': 'later', 'start': 0, 'end': 12, 'quote': 'The judgment'}], relation='direct-history', treatment='reversed', extent='part', opinion_role='majority', proposition='A legal rule', target_court='Trial court', later_court='Appeals court', authority_analysis='Appeals court reviews trial judgment', identity_rationale='Same case on appeal', outcome='Partly reversed', analysis='Matching appeal.', contrary='Other grounds remain.', limitations=['Search incomplete'])
-            result = json.loads(plugin.invoke('justia_review', args, Context()))
+            result = json.loads(plugin.invoke('caselaw_review', args, Context()))
             self.assertIn('proposed', result['status'])
             self.assertEqual(result['sources'][0]['text_origin_url'], 'https://example.org/target')
             later.write_text('Changed opinion text.')
-            self.assertIn('error', json.loads(plugin.invoke('justia_review', args, Context())))
+            self.assertIn('error', json.loads(plugin.invoke('caselaw_review', args, Context())))
 
     def test_private_review_receipts_detect_changes(self):
         with tempfile.TemporaryDirectory(dir='/tmp') as tmp:

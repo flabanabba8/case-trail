@@ -1,20 +1,20 @@
-name: justia-case-research
+name: case-trail
 version: "0.1.0"
-description: "Research case history and later treatment using Justia source evidence."
-author: "Justia Case Research contributors"
+description: "A novelty case-law explorer: follow a case's appeals and later treatment with sourced passages. Not legal advice or a citator."
+author: "Case Trail contributors"
 license: GPL-3.0-or-later
 requires_hermes: ">=0.22.0"
 provides_tools:
-  - justia_search
-  - justia_fetch
-  - justia_examine
-  - justia_examine_file
-  - justia_fetch_public_opinion
-  - justia_examine_public_opinion
-  - justia_read_public_opinion
-  - justia_public_opinions
-  - justia_review
-  - justia_review_get
-  - justia_review_check_sources
-  - justia_review_check_public_sources
-  - justia_reviews
+  - caselaw_search
+  - caselaw_fetch
+  - caselaw_examine
+  - caselaw_examine_file
+  - caselaw_fetch_public_opinion
+  - caselaw_examine_public_opinion
+  - caselaw_read_public_opinion
+  - caselaw_public_opinions
+  - caselaw_review
+  - caselaw_review_get
+  - caselaw_review_check_sources
+  - caselaw_review_check_public_sources
+  - caselaw_reviews

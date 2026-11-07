@@ -10,7 +10,7 @@ import unittest
 from unittest.mock import patch
 
 root=Path(__file__).resolve().parents[1]
-spec=importlib.util.spec_from_file_location('justia_public_test',root/'__init__.py',submodule_search_locations=[str(root)])
+spec=importlib.util.spec_from_file_location('caselaw_public_test',root/'__init__.py',submodule_search_locations=[str(root)])
 plugin=importlib.util.module_from_spec(spec);sys.modules[spec.name]=plugin;spec.loader.exec_module(plugin)
 public=plugin.openjurist
 LOW='https://law.justia.com/cases/test/lower'
@@ -97,7 +97,7 @@ class OpenJuristTests(unittest.TestCase):
   storage=types.ModuleType('plugins.plugin_storage');storage.plugin_data_dir=lambda _:self.root
   plugins=types.ModuleType('plugins');plugins.__path__=[]
   with patch.dict(sys.modules,{'plugins':plugins,'plugins.plugin_storage':storage}):
-   result=json.loads(plugin.invoke('justia_read_public_opinion',{'source_id':source,'start':0,'length':13},None))
+   result=json.loads(plugin.invoke('caselaw_read_public_opinion',{'source_id':source,'start':0,'length':13},None))
   self.assertEqual(result['text'],expected[:13]);self.assertEqual(result['next_start'],13)
   for start,length in ((-1,1),(len(expected),1),(True,1),(0,0),(0,10001),(0,True)):
    with self.assertRaises(ValueError):self.store.read(source,start,length)
