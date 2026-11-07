@@ -40,10 +40,10 @@ def private_file(path):
 def read_opinion(path):
     if not isinstance(path, str): raise ValueError('Opinion path must be a string')
     original = Path(path).expanduser()
-    if not original.is_absolute() or original.is_symlink() or private_file(original) or any(x in PRIVATE for x in original.parts):
+    if not original.is_absolute() or original.is_symlink() or private_file(original) or any(x.casefold() in PRIVATE for x in original.parts):
         raise ValueError('Use an absolute opinion file outside private configuration')
     resolved = original.resolve(strict=True)
-    if private_file(resolved) or any(x in PRIVATE for x in resolved.parts): raise ValueError('Private configuration is unsupported')
+    if private_file(resolved) or any(x.casefold() in PRIVATE for x in resolved.parts): raise ValueError('Private configuration is unsupported')
     flags = os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_NONBLOCK', 0)
     fd = os.open(resolved, flags)
     with os.fdopen(fd, 'rb') as f:

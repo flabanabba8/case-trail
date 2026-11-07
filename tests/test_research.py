@@ -25,6 +25,11 @@ class Context:
 
 
 class ResearchTests(unittest.TestCase):
+    def test_mixed_case_private_directory_is_rejected(self):
+        with tempfile.TemporaryDirectory(dir='/tmp') as tmp:
+            folder=Path(tmp)/'.CoDeX';folder.mkdir();source=folder/'fixture.txt';source.write_text('fictional')
+            with self.assertRaises(ValueError):plugin.core.read_opinion(str(source))
+
     def test_registers_the_research_skill_and_tools(self):
         class Registry:
             def __init__(self): self.skills, self.tools = [], []

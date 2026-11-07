@@ -1,9 +1,11 @@
 # Verification
 
+- Mixed-case protected-directory fixtures passed on Linux and native Windows; no real credentials were used. This is not a full platform or publication audit.
+
 - Saved public opinion text can be read in bounded offset-preserving pages; synthetic tests cover Unicode, reconstruction and invalid bounds. Reading the extract does not establish that the source or extraction is complete.
 - Native Windows Python 3.14 on a separate machine passed saved-source paging and one robots-checked fetch of each selected public Katz OpenJurist page. The expected disposition phrases appeared; Justia remained a reference. Source completeness, legal review, Windows ACL behavior and full platform support remain unverified.
 
-- Twenty-eight synthetic tests cover domain filtering, separate text provenance, malformed search responses, party-name query construction, reporter-abbreviation spacing, forwarded session context, extraction URL changes, local opinion files, symlink and atomic-replacement rejection, private review receipts and corruption detection, saved-source change checks, changed-source quote validation, failure reporting, bounded match truncation, late and emphasized disposition passages, reporter-citation dispositions, ambiguous reversal references, partial direct history, invented quotations and dissent versus overruling.
+- Twenty-nine synthetic tests cover domain filtering, separate text provenance, malformed search responses, party-name query construction, reporter-abbreviation spacing, forwarded session context, extraction URL changes, local opinion files, symlink and atomic-replacement rejection, private review receipts and corruption detection, saved-source change checks, changed-source quote validation, failure reporting, bounded match truncation, late and emphasized disposition passages, reporter-citation dispositions, ambiguous reversal references, partial direct history, invented quotations and dissent versus overruling.
 - Hermes catalog validation and Plugin Doctor passed on the development build.
 - A Hermes-runtime fixture saved a private review, reopened it by ID and listed it without including its analysis in the listing.
 - The examiner processed the text of an existing local Justia opinion capture from LegalHelper and found citation and disposition cues. This exercised real extracted source formatting; no legal conclusion or full-reading claim was made, and the source is not bundled.
