@@ -1,5 +1,7 @@
 # Case Trail
 
+![Case Trail: follow the case, keep the quoted evidence](assets/thumbnail.jpg)
+
 Keep case-history and later-treatment research attached to the opinion passages
 and sources behind it. Start from the documents or source access you actually
 have; no model account or repository is required to examine supplied text.
