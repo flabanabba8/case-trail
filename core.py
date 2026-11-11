@@ -150,8 +150,10 @@ def date_cues(text):
             'notice': 'These are unverified date leads. An unlabeled date may mean something else; missing matches do not establish absence.'}
 
 
-def examine(url, text, identifiers, text_origin_url=None):
-    if not valid_url(url):
+def _examine(url, text, identifiers, text_origin_url=None, _provider_neutral=False):
+    if _provider_neutral and url is not None and not valid_origin_url(url):
+        raise ValueError('Source URL must be public HTTPS without credentials, query or fragment')
+    if not _provider_neutral and not valid_url(url):
         raise ValueError('Use an HTTPS Justia case-opinion URL without query or fragment')
     if not isinstance(text, str) or not text.strip() or len(text) > 2_000_000:
         raise ValueError('Supply up to 2 million characters of extracted opinion text')
@@ -196,11 +198,76 @@ def examine(url, text, identifiers, text_origin_url=None):
             'text_completeness': 'not established', 'notice': NOTICE}
 
 
-def review(target, later, evidence, relation, treatment, extent, opinion_role, proposition,
+
+def examine(url, text, identifiers, text_origin_url=None):
+    return _examine(url, text, identifiers, text_origin_url)
+
+
+def examine_source(source_label, text, identifiers, source_url=None):
+    if not isinstance(source_label, str) or not source_label.strip() or len(source_label) > 500:
+        raise ValueError('Supply a bounded source label; do not invent a reference URL')
+    result = _examine(source_url, text, identifiers, source_url, _provider_neutral=True)
+    return {**result, 'source_label': source_label.strip(),
+            'reference_kind': 'caller-provided source; provider-independent, not authenticated'}
+
+
+def _closest(anchor, text):
+    words = set(re.findall(r'\w+', anchor.lower()))
+    lines = text.splitlines()
+    best, best_score = '', 0
+    for i in range(len(lines)):
+        window = ' '.join(x.strip() for x in lines[i:i + 3])
+        score = len(words & set(re.findall(r'\w+', window.lower())))
+        if score > best_score: best, best_score = window, score
+    return re.sub(r'\s+', ' ', best)[:300] if words and best_score >= max(3, len(words) // 2) else ''
+
+
+def _locate(item, text):
+    """Cite by location so long passages need not be retyped: {source, anchor} (a short exact phrase found exactly once)
+    or {source, start, end}. The plugin fills in the quote from the file itself; the exact-match check below still runs."""
+    if 'anchor' in item:
+        anchor = item['anchor']
+        if set(item) != {'source', 'anchor'} or not isinstance(anchor, str) or not 8 <= len(anchor) <= 500 or not anchor.strip():
+            raise ValueError('An anchor citation has only source and anchor (8-500 characters, exact text from the file)')
+        # Line breaks and runs of spaces in the file may differ from how the phrase was typed; match them flexibly,
+        # then record the file's own exact text.
+        found = list(re.finditer(r'\s+'.join(re.escape(w) for w in anchor.split()), text))
+        if not found:
+            hint = _closest(anchor, text)
+            raise ValueError('Anchor text was not found in that source; copy a shorter exact phrase.' + (' Closest passage in that file (line breaks shown as spaces): "%s"' % hint if hint else ''))
+        if len(found) > 1: raise ValueError('Anchor text appears more than once in that source; use a longer or different exact phrase')
+        first, last = found[0].span()
+        return {'source': item['source'], 'start': first, 'end': last, 'quote': text[first:last]}
+    if 'quote' not in item and type(item.get('start')) is int and type(item.get('end')) is int:
+        if set(item) != {'source', 'start', 'end'} or not 0 <= item['start'] < item['end'] <= len(text) or item['end'] - item['start'] > 500:
+            raise ValueError('A location citation has only source, start and end, inside the file and at most 500 characters')
+        return {**item, 'quote': text[item['start']:item['end']]}
+    return item
+
+
+MONTH_NAMES = ('January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December')
+
+
+def date_in_text(date, text):
+    """True when the file itself states this day, in ISO or written form (December 18, 1967 / 18 December 1967 / Dec. 18, 1967)."""
+    month, day, year = MONTH_NAMES[date.month - 1], date.day, date.year
+    forms = [date.isoformat()]
+    for name in (month, month[:3], month[:3] + '.'):
+        forms += ['%s %d, %d' % (name, day, year), '%s %02d, %d' % (name, day, year), '%d %s %d' % (day, name, year), '%s %d %d' % (name, day, year)]
+    flat = ' '.join(str(text).split())
+    return any(f.lower() in flat.lower() for f in forms)
+
+
+def _review(target, later, evidence, relation, treatment, extent, opinion_role, proposition,
            target_court, later_court, authority_analysis, identity_rationale, outcome, analysis, contrary, limitations,
-           target_date=None, later_date=None, reviewer_kind='unspecified', read_scope='unspecified'):
+           target_date=None, later_date=None, reviewer_kind='unspecified', read_scope='unspecified', _provider_neutral=False):
     for source in (target, later):
-        if not isinstance(source, dict) or not valid_url(source.get('url')) or not isinstance(source.get('text'), str) or not source['text'].strip() or len(source['text']) > 2_000_000:
+        if _provider_neutral:
+            if not isinstance(source, dict) or not isinstance(source.get('label'), str) or not source['label'].strip() or len(source['label']) > 500 or not isinstance(source.get('text'), str) or not source['text'].strip() or len(source['text']) > 2_000_000:
+                raise ValueError('Both sources need a bounded label and extracted opinion text')
+            if source.get('url') is not None and not valid_origin_url(source['url']):
+                raise ValueError('Optional source URLs must be public HTTPS without credentials, query or fragment')
+        elif not isinstance(source, dict) or not valid_url(source.get('url')) or not isinstance(source.get('text'), str) or not source['text'].strip() or len(source['text']) > 2_000_000:
             raise ValueError('Both source objects need a Justia case URL and extracted opinion text')
         if source.get('text_origin_url') is not None and not valid_origin_url(source['text_origin_url']):
             raise ValueError('Text origin must be a public HTTPS URL without credentials, query or fragment')
@@ -219,16 +286,19 @@ def review(target, later, evidence, relation, treatment, extent, opinion_role, p
     if reviewer_kind not in {'assistant', 'human', 'unspecified'} or read_scope not in {'passages-only', 'full-opinions', 'unspecified'}:
         raise ValueError('Invalid reviewer kind or reading scope')
     dates = []
-    for value in (target_date, later_date):
+    for value, dated_source in ((target_date, target), (later_date, later)):
         if value is None:
             dates.append(None)
             continue
-        if not isinstance(value, str): raise ValueError('Decision dates must be ISO dates')
+        if not isinstance(value, str): raise ValueError('Decision dates must be ISO dates (YYYY-MM-DD); omit the field when the file does not state the date')
         try: date = datetime.date.fromisoformat(value)
-        except ValueError as exc: raise ValueError('Decision dates must be ISO dates') from exc
+        except ValueError as exc: raise ValueError('Decision dates must be ISO dates (YYYY-MM-DD); omit the field when the file does not state the date') from exc
         if date.isoformat() != value or date > datetime.date.today(): raise ValueError('Decision dates must be valid nonfuture ISO dates')
         dates.append(date)
     if all(dates) and dates[1] < dates[0]: raise ValueError('Later decision predates the target decision')
+    for value, parsed, dated_source in ((target_date, dates[0], target), (later_date, dates[1], later)):
+        if parsed is not None and not date_in_text(parsed, dated_source['text']):
+            raise ValueError('The date %s does not appear in that source file. Leave the date out unless the file itself states it; do not supply a date from memory.' % value)
     if not all(isinstance(x, str) and x.strip() and len(x) <= 3000 for x in
                (proposition, target_court, later_court, authority_analysis, identity_rationale, outcome, analysis, contrary)):
         raise ValueError('Provide the proposition, both courts and their authority relationship, identity rationale, outcome, supporting and contrary analysis')
@@ -237,16 +307,20 @@ def review(target, later, evidence, relation, treatment, extent, opinion_role, p
     if not isinstance(evidence, list) or not 2 <= len(evidence) <= 20:
         raise ValueError('Provide evidence from both sources')
     found = set()
+    expanded = []
     for e in evidence:
         if not isinstance(e, dict) or e.get('source') not in {'target', 'later'}:
             raise ValueError('Invalid evidence source')
         src = target if e['source'] == 'target' else later
+        e = _locate(e, src['text'])
+        expanded.append(e)
         a, b, quote = e.get('start'), e.get('end'), e.get('quote')
         if type(a) is not int or type(b) is not int or not isinstance(quote, str) or not quote.strip() or len(quote) > 500 or not 0 <= a < b <= len(src['text']) or src['text'][a:b] != quote:
             raise ValueError('Evidence must be exact quoted text at the supplied offsets')
         found.add(e['source'])
     if found != {'target', 'later'}:
         raise ValueError('Evidence from both opinions is required')
+    evidence = expanded
     return {'status': 'proposed; not independently reviewed', 'relation': relation, 'treatment': treatment,
             'extent': extent, 'opinion_role': opinion_role, 'analysis': analysis, 'contrary': contrary,
             'proposition': proposition, 'target_court': target_court, 'later_court': later_court,
@@ -258,3 +332,17 @@ def review(target, later, evidence, relation, treatment, extent, opinion_role, p
             'sources': [{'url': s['url'], 'text_origin_url': s.get('text_origin_url'),
                          'sha256': hashlib.sha256(s['text'].encode()).hexdigest()} for s in (target, later)],
             'notice': NOTICE + ' Matching quotes do not verify the legal analysis, URL provenance, decision dates or completeness of either text.'}
+
+
+def review(*args, **kwargs):
+    if '_provider_neutral' in kwargs: raise ValueError('Use the provider-independent source review interface explicitly')
+    return _review(*args, **kwargs)
+
+
+def review_sources(target, later, **kwargs):
+    if not isinstance(target, dict) or not isinstance(later, dict): raise ValueError('Supply two source objects')
+    target, later = ({**source, 'url': source.get('url')} for source in (target, later))
+    result = _review(target, later, _provider_neutral=True, **kwargs)
+    result['sources'] = [{**record, 'label': source['label'], 'reference_kind': 'caller-provided, not authenticated'}
+                         for record, source in zip(result['sources'], (target, later))]
+    return result

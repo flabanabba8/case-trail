@@ -1,5 +1,45 @@
 # Case Trail
 
+Keep case-history and later-treatment research attached to the opinion passages
+and sources behind it. Start from the documents or source access you actually
+have; no model account or repository is required to examine supplied text.
+
+**At a glance**
+
+- **Install:** `hermes plugins install flabanabba8/case-trail`, then `hermes plugins enable case-trail`.
+- **Needs:** Hermes 0.22 or later. A web search provider already set up in Hermes is optional; you can also supply opinion text yourself.
+- **Internet:** Search queries (aimed at Justia case pages) go through the web provider you configured in Hermes, and results are kept only if they are Justia case pages. It can also fetch one public OpenJurist case page you select, after a robots check.
+- **Limits:** Linux is the only platform checked. A novelty research tool, not legal advice; findings are unverified leads to read against the real opinion.
+- **Credits:** Independent of and unaffiliated with Justia or OpenJurist; opinions keep their own sources and terms. Licence: GPL-3.0-or-later.
+- **AI assistance:** Written with AI coding assistants (Anthropic Claude and OpenAI Codex agents) under the maintainer's direction; what was actually tested is listed in VERIFICATION.md.
+
+## Bring your own opinion sources
+
+Use `caselaw_examine_source_file` for a selected bounded UTF-8 opinion, or
+`caselaw_examine_source` for supplied text. Give it a real source label and case
+identifiers; an actual public HTTPS URL is optional. Do not invent a Justia URL
+for a local document or another repository. Findings remain unverified leads.
+
+`caselaw_review_sources` takes two labeled sources, each with exactly one of
+`text` or `source_path`, and optional real `url`/`text_origin_url`. It preserves
+the existing exact-quote, chronology, authority, relationship and opinion-role
+checks. Set `save:true` to retain a private proposed-review receipt; the existing
+review/source-check tools work on it. Matching text is not authenticated origin
+or verified legal correctness.
+
+The Justia search/examine/review and OpenJurist fetch helpers remain explicit
+provider-specific adapters with their original contracts. They are options,
+not a reason to fabricate references or require those sites for supplied-source
+research. Use the active host's available search/browser/document tools for
+other sources, then the provider-independent routes above. No second reasoning
+client or hidden worker is introduced.
+
+Read the [setup and worked workflow](llmwiki/task-guide.md) and current
+[tool schemas](llmwiki/contracts.json). The older provider-specific detail below
+retains its own scope.
+
+## Existing repository adapters and detailed limits
+
 **A novelty research toy, not legal advice, not a citator and not for official or court use.** It helps you follow a case's appeals and later treatment out of curiosity, with every claim tied to a quoted passage. This project is not affiliated with Justia or OpenJurist; their sites are only sources it can point to or read.
 
 The plugin registers the Hermes skill `case-trail:research-caselaw`
@@ -51,3 +91,24 @@ and a date in the opinion body differ. The Supreme Court's
 [certiorari order](https://supreme.justia.com/cases/federal/us/386/954/) is a
 separate procedural event. Treat the plugin's date cues as a prompt to inspect
 the original sources, not an automatic resolution of the discrepancy.
+
+## Citing passages (0.3.0)
+
+A review's evidence can be cited by a short exact phrase (`anchor`, found exactly once in the supplied file) or by `start`/`end` character positions. Case Trail copies the quote from the file itself and keeps the exact-match check, so long passages (including line breaks) never have to be retyped. The older form with `quote` still works.
+
+## 0.4.0 (2026-11-11)
+
+- `caselaw_review_render` turns a saved proposed review into a readable HTML page (or Markdown): the answer, each exact quote with the opinion it comes from and its place, why, what points the other way, and the limits.
+- A decision date is accepted only if the source file itself states it; otherwise the review is refused until the date is left out (a lower-court date had been saved from memory).
+
+## 0.4.1 (2026-11-11)
+
+- Tool description and skill: `caselaw_review` is for Justia-sourced text only; opinion files the user already has go through `caselaw_review_sources`.
+
+## 0.4.2 (2026-11-11)
+
+- `caselaw_review_render` takes only the review ID and always writes both the HTML page and a Markdown copy; the title names the court whose ruling was reviewed.
+
+## 0.4.3 (2026-11-11)
+
+- The review page title uses the short court name and the case name when known: "What happened to the Ninth Circuit ruling in Katz v. United States".

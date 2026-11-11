@@ -19,3 +19,32 @@
 - A bounded live Katz test fetched the lower and higher OpenJurist public case pages after checking robots.txt for each; it found the relevant passages, rejected a different-case reversal as proof, saved a proposed receipt, and detected swapped source IDs. Justia links were references, not text sources. Identity, OCR, completeness, independent legal review and present legal status remain unverified.
 - Synthetic public-source tests cover conservative robots enforcement (including disallow overriding a broad allow), malformed policies, excessive crawl delay, no retry on HTTP 429, public-address enforcement, URL validation, private source storage and tamper detection. Hermes runtime discovery and registered skill, mock host workflow and catalog validation passed with thirteen tools.
 - 2026-11-07: BUG FIXED. The earlier bulk rename left the tool-dispatch prefix stale (`removeprefix('justia_')`), so every tool that goes through the core dispatch (for example caselaw_examine) failed with AttributeError when called through Hermes, although the unit tests passed. Found by running the real tool in the demo maker. New regression test calls caselaw_examine through invoke and checks that no registered tool name fails to resolve; it fails on the old code. 30 tests pass.
+
+##2026-11-10 supplied-source portability
+
+Added provider-independent text/file examination and labeled-source review/save.
+No fake Justia reference is needed.33offline/mocked regressions pass, including
+three new source/URL/evidence/authority/storage-continuity tests. Original Justia
+contracts and existing review provenance checks remain intact. No live legal
+research, model API, repository account or legal correctness certification was
+performed. Current schemas, admission and source preflight are recorded separately.
+
+- 2026-11-10 (0.3.0): evidence may be cited by unique anchor or by location; the quote is filled from the file and the exact-match guard is unchanged. Offline test added (anchor, location, absent, ambiguous and out-of-range cases); 34 tests pass. No live provider use.
+- 2026-11-10 (0.3.0, after first real-Hermes attempt): the assistant found anchor citing by itself, then failed on (a) `source_label` (used by the examine tool) versus `label` in review sources and (b) unguessable relation value. Now `source_label` is accepted, the tool schema lists the allowed relation/treatment/extent/opinion_role values and the source/evidence fields, and an anchor matches across line breaks (the file's own exact text is stored). 35 tests pass.
+- 2026-11-10 (0.3.0, after second real-Hermes attempt): a missing anchor now returns the closest exact passage from the file; date fields say to omit when unknown (the assistant had guessed 1966-01-01). 36 tests pass.
+
+## 0.4.0 (2026-11-11)
+
+Tests: date must appear in its own source (accepted when stated, refused when not, fine when omitted) and the rendering shows quotes, places and limits, escapes HTML and writes a private file. 38 tests pass with the Hermes interpreter path (a standalone interpreter lacks the plugins module for older tests).
+
+## 0.4.1 (2026-11-11)
+
+Text-only change after a live run used the Justia-only review tool on local files and stopped.
+
+## 0.4.2 (2026-11-11)
+
+Rendering tests unchanged in substance; one call now returns both file paths.
+
+## 0.4.3 (2026-11-11)
+
+Title test added to the rendering test.

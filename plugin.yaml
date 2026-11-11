@@ -1,10 +1,13 @@
 name: case-trail
-version: "0.1.0"
-description: "A novelty case-law explorer: follow a case's appeals and later treatment with sourced passages. Not legal advice or a citator."
+version: "0.4.3"
+description: "Trace case-history and treatment research to actual opinion passages; analyze supplied sources without a required repository."
 author: "Case Trail contributors"
 license: GPL-3.0-or-later
 requires_hermes: ">=0.22.0"
 provides_tools:
+  - caselaw_examine_source
+  - caselaw_examine_source_file
+  - caselaw_review_sources
   - caselaw_search
   - caselaw_fetch
   - caselaw_examine
@@ -17,4 +20,5 @@ provides_tools:
   - caselaw_review_get
   - caselaw_review_check_sources
   - caselaw_review_check_public_sources
+  - caselaw_review_render
   - caselaw_reviews
