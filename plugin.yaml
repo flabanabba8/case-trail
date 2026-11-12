@@ -1,5 +1,5 @@
 name: case-trail
-version: "0.4.3"
+version: "0.4.4"
 description: "Trace case-history and treatment research to actual opinion passages; analyze supplied sources without a required repository."
 author: "Case Trail contributors"
 license: GPL-3.0-or-later
@@ -22,3 +22,5 @@ provides_tools:
   - caselaw_review_check_public_sources
   - caselaw_review_render
   - caselaw_reviews
+config_schema:
+  opinion_folders: {type: str, default: "", description: "Optional comma-separated folders (or a JSON array) that opinion files must live under. Empty = any folder outside the private-configuration denylist. Set by you; the model cannot change it."}

@@ -48,7 +48,7 @@ Inputs: `source_id` (required), `start` (required), `length` (optional).
 
 List locally saved OpenJurist opinion IDs and unverified metadata without sending network requests.
 
-Inputs: .
+Inputs: none.
 
 ## caselaw_review
 
@@ -84,7 +84,7 @@ Inputs: `review_id` (required).
 
 List saved private proposed review receipts without their facts or excerpts.
 
-Inputs: .
+Inputs: none.
 
 ## caselaw_examine_source
 
@@ -103,4 +103,3 @@ Inputs: `source_label` (required), `source_path` (required), `identifiers` (requ
 Validate and optionally save a proposed treatment analysis using two labeled supplied opinion sources, each with exactly one of text or source_path and an optional real HTTPS url/text_origin_url. No required repository or fabricated reference URL. Exact evidence, chronology, authority, opinion-role and self-attested review limits are unchanged. Cite each evidence passage as {source: target or later, anchor: <short exact phrase, 8-500 characters, found exactly once in that file>} or {source, start, end} character positions; the plugin copies the quote from the file itself and still refuses anything that does not match. The older {source,start,end,quote} form still works.
 
 Inputs: `target` (required), `later` (required), `evidence` (required), `relation` (required), `treatment` (required), `extent` (required), `opinion_role` (required), `proposition` (required), `target_court` (required), `later_court` (required), `authority_analysis` (required), `target_date` (optional), `later_date` (optional), `reviewer_kind` (optional), `read_scope` (optional), `identity_rationale` (required), `outcome` (required), `analysis` (required), `contrary` (required), `limitations` (required), `save` (optional).
-

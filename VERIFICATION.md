@@ -33,6 +33,12 @@ performed. Current schemas, admission and source preflight are recorded separate
 - 2026-11-10 (0.3.0, after first real-Hermes attempt): the assistant found anchor citing by itself, then failed on (a) `source_label` (used by the examine tool) versus `label` in review sources and (b) unguessable relation value. Now `source_label` is accepted, the tool schema lists the allowed relation/treatment/extent/opinion_role values and the source/evidence fields, and an anchor matches across line breaks (the file's own exact text is stored). 35 tests pass.
 - 2026-11-10 (0.3.0, after second real-Hermes attempt): a missing anchor now returns the closest exact passage from the file; date fields say to omit when unknown (the assistant had guessed 1966-01-01). 36 tests pass.
 
+## 0.4.4 - maintainer review (2026-11-12)
+
+Maintainer review. Opinion files are read only from folders the owner lists in the opinion_folders setting (plus the working folder); system folders, Hermes home, auth.json, .claude, .gemini, keyrings and browser profiles are refused. Re-tested: 45 offline tests, all passing; plugin preflight reports no findings.
+
+Live test through Hermes 0.23.0 (2026-11-12, own profile): installs through the Hermes scanner, reads a real opinion file, refuses .env, .claude and kernel files. Found and fixed: the install scanner flagged a kernel path in a comment and the tests.
+
 ## 0.4.0 (2026-11-11)
 
 Tests: date must appear in its own source (accepted when stated, refused when not, fine when omitted) and the rendering shows quotes, places and limits, escapes HTML and writes a private file. 38 tests pass with the Hermes interpreter path (a standalone interpreter lacks the plugins module for older tests).

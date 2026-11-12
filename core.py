@@ -28,13 +28,46 @@ MONTHS = {name.lower(): index for index, name in enumerate(
 DATE_TEXT = r'(?P<month>' + '|'.join(MONTHS) + r')[ \t]+(?P<day>\d{1,2}),[ \t]+(?P<year>\d{4})'
 LABELED_DATE = re.compile(r'^[ \t]*(?P<label>Date[ \t]+Decided|Decided|Certiorari[ \t]+Granted)[ \t]*:?[ \t]*' + DATE_TEXT + r'[ \t]*\.?[ \t]*\r?$', re.I | re.M)
 STANDALONE_DATE = re.compile(r'^[ \t]*' + DATE_TEXT + r'[ \t]*\.?[ \t]*\r?$', re.I | re.M)
-PRIVATE = {'.ssh', '.gnupg', '.aws', '.azure', '.codex', '.docker', '.kube', '.pki', '.config', '.hermes'}
-PRIVATE_FILES = {'.env', '.netrc', '.npmrc', '.pypirc', '.git-credentials', 'credentials.json', 'secrets.json', 'token.json'}
+PRIVATE = {'.ssh', '.gnupg', '.aws', '.azure', '.codex', '.docker', '.kube', '.pki', '.config', '.hermes', '.claude', '.gemini', '.mozilla'}
+PRIVATE_SUBPATHS = (('.local', 'share', 'keyrings'),)
+SYSTEM_PREFIXES = ('/proc', '/sys', '/dev')          # kernel views of a running process can expose provider keys as "excerpts"
+ALLOWED_ROOTS = ()                                   # folders the OWNER lists in the plugin setting opinion_folders; empty = any readable folder outside the denylist
+PRIVATE_FILES = {'.env', '.netrc', '.npmrc', '.pypirc', '.git-credentials', 'credentials.json', 'secrets.json', 'token.json', 'auth.json'}
 PRIVATE_SUFFIXES = {'.pem', '.key', '.p12', '.pfx', '.keystore', '.jks'}
 
 
 def private_file(path):
     return path.name.lower() in PRIVATE_FILES or path.name.lower().startswith('.env.') or path.suffix.lower() in PRIVATE_SUFFIXES
+
+
+def set_allowed_roots(roots):
+    """Owner-set folders (plugin setting opinion_folders) that opinion files must live under. Empty = no extra restriction."""
+    global ALLOWED_ROOTS
+    out = []
+    for r in roots or ():
+        try: out.append(Path(str(r)).expanduser().resolve(strict=True))
+        except (OSError, ValueError): pass
+    ALLOWED_ROOTS = tuple(out)
+
+
+def hermes_home():
+    try:
+        from hermes_constants import get_hermes_home
+        return Path(get_hermes_home()).resolve()
+    except Exception:
+        return None
+
+
+def refused_location(resolved):
+    """Why a resolved path must never be read, or None: kernel/device views, the Hermes home, key stores, the owner's folder list."""
+    text = resolved.as_posix()
+    if any(text == p or text.startswith(p + '/') for p in SYSTEM_PREFIXES): return 'kernel and device files are unsupported'
+    home = hermes_home()
+    if home is not None and (resolved == home or home in resolved.parents): return 'the Hermes home folder is unsupported'
+    parts = tuple(x.casefold() for x in resolved.parts)
+    if any(any(parts[i:i + len(sub)] == sub for i in range(len(parts))) for sub in PRIVATE_SUBPATHS): return 'key stores are unsupported'
+    if ALLOWED_ROOTS and not any(r == resolved or r in resolved.parents for r in ALLOWED_ROOTS): return 'the file is outside the folders listed in the plugin setting opinion_folders'
+    return None
 
 
 def read_opinion(path):
@@ -44,6 +77,8 @@ def read_opinion(path):
         raise ValueError('Use an absolute opinion file outside private configuration')
     resolved = original.resolve(strict=True)
     if private_file(resolved) or any(x.casefold() in PRIVATE for x in resolved.parts): raise ValueError('Private configuration is unsupported')
+    why = refused_location(resolved)
+    if why: raise ValueError('Opinion file refused: ' + why)
     flags = os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_NONBLOCK', 0)
     fd = os.open(resolved, flags)
     with os.fdopen(fd, 'rb') as f:

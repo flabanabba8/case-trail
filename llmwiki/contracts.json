@@ -211,7 +211,7 @@
     },
     {
       "name": "caselaw_review",
-      "description": "ONLY for opinions that come from Justia pages (each source needs a Justia reference url). For opinion files the user gave you, use caselaw_review_sources instead. Validate a proposed treatment analysis against exact passages from both supplied opinions. Each source object contains a Justia reference url and exactly one of text, source_path or public_source_id; text or source_path can have an optional text_origin_url. Explain the courts\u2019 authority relationship. Dates, provenance and reviewer reading scope are attestations, not independently verified. Set save to store a private review receipt. Cite each evidence passage as {source: target or later, anchor: <short exact phrase, 8-500 characters, found exactly once in that file>} or {source, start, end} character positions; the plugin copies the quote from the file itself and still refuses anything that does not match. The older {source,start,end,quote} form still works.",
+      "description": "ONLY for opinions that come from Justia pages (each source needs a Justia reference url). For opinion files the user gave you, use caselaw_review_sources instead. Validate a proposed treatment analysis against exact passages from both supplied opinions. Each source object contains a Justia reference url and exactly one of text, source_path or public_source_id; text or source_path can have an optional text_origin_url. Explain the courts’ authority relationship. Dates, provenance and reviewer reading scope are attestations, not independently verified. Set save to store a private review receipt. Cite each evidence passage as {source: target or later, anchor: <short exact phrase, 8-500 characters, found exactly once in that file>} or {source, start, end} character positions; the plugin copies the quote from the file itself and still refuses anything that does not match. The older {source,start,end,quote} form still works.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -336,7 +336,7 @@
     },
     {
       "name": "caselaw_review_check_sources",
-      "description": "Compare two explicitly selected local opinion files against a saved review\u2019s source fingerprints. Matching text does not verify legal status or provenance.",
+      "description": "Compare two explicitly selected local opinion files against a saved review’s source fingerprints. Matching text does not verify legal status or provenance.",
       "parameters": {
         "type": "object",
         "properties": {

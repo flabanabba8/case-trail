@@ -40,6 +40,16 @@ TOOLS['caselaw_review_sources'] = ('Validate and optionally save a proposed trea
 
 def invoke(name, args, ctx, **kwargs):
     try:
+        folders = []
+        try:
+            raw = ctx.get_config('opinion_folders') if ctx is not None else None
+        except Exception:
+            raw = None
+        if isinstance(raw, str) and raw.strip():
+            try: raw = json.loads(raw)
+            except ValueError: raw = [x for x in raw.split(',') if x.strip()]
+        if isinstance(raw, list): folders = [str(x).strip() for x in raw if str(x).strip()]
+        core.set_allowed_roots(folders)
         context = {k: kwargs[k] for k in ('parent_agent', 'task_id', 'session_id') if k in kwargs}
         if name == 'caselaw_search':
             plans = core.terms(args.get('case', ''), args.get('citation', ''), args.get('docket', ''))
