@@ -3,7 +3,7 @@ version: "0.4.4"
 description: "Trace case-history and treatment research to actual opinion passages; analyze supplied sources without a required repository."
 author: "Case Trail contributors"
 license: GPL-3.0-or-later
-requires_hermes: ">=0.22.0"
+requires_hermes: ">=0.22.3"
 provides_tools:
   - caselaw_examine_source
   - caselaw_examine_source_file
